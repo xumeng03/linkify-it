@@ -1,86 +1,95 @@
 import unicode from "./unicode";
+import {schemas} from "./schemas";
 
 export class Re {
     /**
      * 匹配任意 Unicode 字符
      */
-    Any = unicode.Any
+    Any = unicode.Any.source
     /**
      * 匹配控制字符
      */
-    Control = unicode.Control
+    Control = unicode.Control.source
     /**
      * 匹配格式控制字符
      */
-    Format = unicode.Format
+    Format = unicode.Format.source
     /**
      * 匹配标点字符
      */
-    Punctuation = unicode.Punctuation
+    Punctuation = unicode.Punctuation.source
     /**
      * 匹配符号字符
      */
-    Symbol = unicode.Symbol
+    Symbol = unicode.Symbol.source
     /**
      * 匹配空白字符
      */
-    Whitespace = unicode.Whitespace
+    Whitespace = unicode.Whitespace.source
     /**
      * 匹配空白字符+标点字符+控制字符
      */
-    WPC = new RegExp([this.Whitespace.source, this.Punctuation.source, this.Control.source].join('|'))
+    WPC = [this.Whitespace, this.Punctuation, this.Control].join('|')
     /**
      * 匹配空白字符+控制字符
      */
-    WC = new RegExp([this.Whitespace.source, this.Control.source].join('|'))
+    WC = [this.Whitespace, this.Control].join('|')
     // 匹配>、<、\字符
-    TextSeparator = new RegExp('[><\uff5c]')
+    TextSeparator = '[><\uff5c]'
     /**
      * 匹配不属于空白字符+标点字符+控制字符+分隔字符
      */
-    PseudoLetter = new RegExp('(?:(?!' + this.TextSeparator.source + '|' + this.WPC.source + ')' + this.Any.source + ')')
-    // ip4
-    Ip4 = /(?:(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/
+    PseudoLetter = '(?:(?!' + this.TextSeparator + '|' + this.WPC + ')' + this.Any + ')'
     /**
      * 匹配@符号前有任意非空白、控制字符至少一次（匹配网站用户名密码）
      * http://user@example.com
      * http://user:pass@example.com
      */
-    Auth = new RegExp('(?:(?:(?!' + this.WC.source + '|[@\/\[\]\(\)]).)+@)?')
-    Port = /'(?::(?:6(?:[0-4]\\d{3}|5(?:[0-4]\\d{2}|5(?:[0-2]\\d|3[0-5])))|[1-5]?\\d{1,4}))?'/
-    /**
-     * 匹配国际化域名
-     * http://www.xn--brgerentscheid-krankenhuser-xkc78d.de
-     * http://xn--4gbrim.xn--ymcbaaajlc6dj7bxne2c.xn--wgbh1c
-     */
-    XN = /xn--[a-z0-9\\-]{1,59}/
+    Auth = '(?:(?:(?!' + this.WC + '|[@\/\[\]\(\)]).)+@)?'
     /**
      * 匹配域名
      * example.com
-     * xn--4gbrim.xn--ymcbaaajlc6dj7bxne2c.xn--wgbh1c
      */
-    Domain = new RegExp('(?:' +
-        // 包含xn--前缀的国际化域名
-        this.XN.source +
-        '|' +
+    Domain = '(?:' +
         // 一般的域名字符（字母、数字、连字符）
-        '(?:' + this.PseudoLetter.source + ')' +
+        '(?:' + this.PseudoLetter + ')' +
         '|' +
         // 匹配子域名
-        '(?:' + this.PseudoLetter.source + '(?:-|' + this.PseudoLetter.source + '){0,61}' + this.PseudoLetter.source + ')' +
-        ')')
-    Host = new RegExp('(?:(?:(?:' + this.Domain + ')\.)*' + this.Domain + ')')
-    hostTerminator = new RegExp(
-        '(?=$|' + this.TextSeparator.source + '|' + this.WPC.source + ')' +
-        '(?!' + '_|:\d|\.-|\.(?!$|' + this.WPC.source + '))'
-    )
-    HostStrict = new RegExp(this.Host.source + this.hostTerminator.source)
-    Path = new RegExp('(?:[/?#](?:(?!' + this.WC.source + '|' + this.TextSeparator.source + '|[()[\\]{}.,"\'?!\\-;]).|\\/))?')
-    http = new RegExp('^\\/\\/' + this.Auth.source + this.HostStrict + this.Path, 'i')
-    Email = new RegExp('[\\-;:&=+$,.a-zA-Z0-9_][\\-;:&=+$,".a-zA-Z0-9_]*')
+        '(?:' + this.PseudoLetter + '(?:-|' + this.PseudoLetter + '){0,61}' + this.PseudoLetter + ')' +
+        ')'
+    /**
+     * 匹配域名
+     * example.com
+     */
+    Host = '(?:(?:(?:' + this.Domain + ')\.)*' + this.Domain + ')'
+    /**
+     * 约束域名结束
+     * 可以是字符串的结尾 ($)，或者是 TextSeparator 中的字符，或者是 re.WPC 中的字符
+     */
+    hostTerminator = '(?=$|' + this.TextSeparator + '|' + this.WPC + ')' + '(?!' + '_|:\d|\.-|\.(?!$|' + this.WPC + '))'
+    /**
+     * 域名正则
+     */
+    HostStrict = this.Host + this.hostTerminator
+    /**
+     * 网址的路径正则
+     */
+    Path = '(?:[/?#](?:(?!' + this.WC + '|' + this.TextSeparator + '|[()[\\]{}.,"\'?!\\-;]).|\\/))?'
+    /**
+     * http网址的路径正则
+     */
+    http = new RegExp('^\\/\\/' + this.Auth + this.HostStrict + this.Path, 'i')
+    /**
+     * 邮箱名
+     */
+    Email = '[\\-;:&=+$,.a-zA-Z0-9_][\\-;:&=+$,".a-zA-Z0-9_]*'
+    /**
+     * 邮箱网址的路径正则
+     */
     mailto = new RegExp('^' + this.Email + '@' + this.HostStrict, 'i')
 
-    constructor() {
-        console.log(this.Domain);
-    }
+    slist = Object.keys(schemas).join('|')
+    schema_test = RegExp('(^|(?!_)(?:[><\uff5c]|' + this.WPC + '))(' + this.slist + ')', 'i')
+    schema_search = RegExp('(^|(?!_)(?:[><\uff5c]|' + this.WPC + '))(' + this.slist + ')', 'ig')
+    schema_at_start = RegExp('^' + this.schema_search.source, 'i')
 }
